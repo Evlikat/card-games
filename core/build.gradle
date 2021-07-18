@@ -1,0 +1,20 @@
+plugins {
+    id 'java'
+    id 'kotlin'
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+group 'io.evlikat.games.card-games'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation "org.jetbrains.kotlin:kotlin-stdlib"
+}
+
+test {
+    useJUnitPlatform()
+}
