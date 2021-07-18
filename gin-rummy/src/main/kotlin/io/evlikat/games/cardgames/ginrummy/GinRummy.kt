@@ -1,26 +1,27 @@
 package io.evlikat.games.cardgames.ginrummy
 
 import io.evlikat.games.cardgames.core.*
-import io.evlikat.games.cardgames.core.Nominal.*
 
 class GinRummy(
     private val watcher: Watcher,
     private val player1: Player,
     private val player2: Player,
 ) {
-    private val deck = Deck.standard52().apply {
+    val deck = Deck.standard52().also {
+        it.watcher = watcher
+    }.apply {
         shuffle()
     }
 
-    private val hand1 = Hand(player1).also {
+    val hand1 = Hand(player1).also {
         it.watcher = watcher
     }
 
-    private val hand2 = Hand(player2).also {
+    val hand2 = Hand(player2).also {
         it.watcher = watcher
     }
 
-    private val discard = Discard().also {
+    val discard = Discard().also {
         it.watcher = watcher
     }
 
@@ -35,7 +36,41 @@ class GinRummy(
         deck.moveCardTo(discard)
     }
 
-    fun turn(number: Int, activePlayer: Player) {
+    fun play(): Pair<Int, Int> {
+        var turnNumber = 1
+        val players = listOf(player1, player2)
+        while (deck.size > 2) {
+            val playerNumber = (turnNumber - 1) % players.size
+            val activePlayer = players[playerNumber]
+            when (val result = turn((turnNumber + 1) / 2, activePlayer)) {
+                is GameOver -> return if (result.deadwoodDiff > 0) {
+                    if (playerNumber == 0) {
+                        (KNOCK_BONUS + result.deadwoodDiff) to 0
+                    } else {
+                        0 to (KNOCK_BONUS - result.deadwoodDiff)
+                    }
+                } else {
+                    if (playerNumber == 1) {
+                        0 to (KNOCK_BONUS + result.deadwoodDiff)
+                    } else {
+                        (KNOCK_BONUS - result.deadwoodDiff) to 0
+                    }
+                }
+            }
+            turnNumber++
+        }
+        val (deadwood1, _) = findCombinations(hand1.allCards)
+        val (deadwood2, _) = findCombinations(hand2.allCards)
+        val deadwoodValue1 = evaluate(deadwood1)
+        val deadwoodValue2 = evaluate(deadwood2)
+        return when {
+            deadwoodValue1 > deadwoodValue2 -> 0 to deadwoodValue1 - deadwoodValue2
+            deadwoodValue1 < deadwoodValue2 -> deadwoodValue2 - deadwoodValue1 to 0
+            else -> 0 to 0
+        }
+    }
+
+    private fun turn(number: Int, activePlayer: Player): TurnResult {
         val playerHand = if (activePlayer == player1) hand1 else hand2
         if (number == 1) {
             val drawTopDiscard = activePlayer.askYesNo("Do you want to draw top discard card?")
@@ -50,14 +85,45 @@ class GinRummy(
             val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.allCards)
             playerHand.moveCardTo(selectedCard, discard)
         }
-        // TODO: add auto calc
+        val (deadwood, combinations) = findCombinations(playerHand.allCards)
+        if (deadwood.isNotEmpty() && evaluate(deadwood.sortedByDescending { evaluate(it) }
+                .drop(1)) > MAX_DEADWOOD_VALUE) {
+            return NextTurn
+        }
+
         val knock = activePlayer.askYesNo("Do you want to knock?")
         if (!knock) {
-            return
+            return NextTurn
         }
-        val discardCover = activePlayer.askSelectCard("Select card to cover discard", playerHand.allCards)
+
+        val cardsAvailableToDiscard = playerHand.allCards.filter { playerCard ->
+            val (potentialDeadwood, _) = findCombinations(playerHand.allCards - playerCard)
+            potentialDeadwood.isEmpty() || evaluate(potentialDeadwood) <= MAX_DEADWOOD_VALUE
+        }
+
+        val discardCover = activePlayer.askSelectCard("Select card to cover discard", cardsAvailableToDiscard)
         playerHand.moveCardTo(discardCover, discard)
 
+        val deadwoodValueAfterDiscard = evaluate(playerHand.allCards - discardCover - combinations.flatten())
+
         val anotherPlayer = if (activePlayer == player1) player2 else player1
+        val anotherPlayerHand = if (activePlayer == player1) hand2 else hand1
+
+        val (anotherPlayerDeadwood, _) = findCombinations(anotherPlayerHand.allCards)
+
+        // TODO: complete opponents combinations
+
+        val anotherPlayerDeadwoodValue = evaluate(anotherPlayerDeadwood.sortedByDescending { evaluate(it) }.drop(1))
+
+        return GameOver(deadwoodDiff = anotherPlayerDeadwoodValue - deadwoodValueAfterDiscard)
+    }
+
+    companion object {
+        const val MAX_DEADWOOD_VALUE = 10
+        const val KNOCK_BONUS = 25
     }
 }
+
+sealed class TurnResult
+object NextTurn : TurnResult()
+class GameOver(val deadwoodDiff: Int) : TurnResult()

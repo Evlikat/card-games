@@ -46,15 +46,15 @@ infix fun Char.of(suit: Suit): Card = Card(
     }
 )
 
-class Watcher {
-    fun cardMoved(card: Card, from: CardZone, to: CardZone) {
-
-    }
+interface Watcher {
+    fun cardMoved(card: Card, from: CardZone, to: CardZone)
 }
 
 class Deck private constructor(private val cards: MutableList<Card>) : CardZone {
 
     override lateinit var watcher: Watcher
+
+    val size: Int get() = cards.size
 
     companion object {
         fun standard52(): Deck =
@@ -82,6 +82,8 @@ class Deck private constructor(private val cards: MutableList<Card>) : CardZone 
 class Discard(private val cards: MutableList<Card> = mutableListOf()) : CardZone {
 
     override lateinit var watcher: Watcher
+
+    val allCards: List<Card> = cards
 
     override fun draw(): Card {
         return cards.removeAt(cards.lastIndex)

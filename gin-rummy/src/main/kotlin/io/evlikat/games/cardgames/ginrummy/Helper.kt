@@ -87,9 +87,9 @@ private fun findSets(cards: Collection<Card>): List<GSet> {
         .map { GSet(it) }
 }
 
-private fun evaluate(cards: Collection<Card>): Int = cards.sumOf { evaluate(it) }
+fun evaluate(cards: Collection<Card>): Int = cards.sumOf { evaluate(it) }
 
-private fun evaluate(card: Card): Int {
+fun evaluate(card: Card): Int {
     return when (card.nominal) {
         C10, J, Q, K -> 10
         else -> card.nominal.ordinal + 1
