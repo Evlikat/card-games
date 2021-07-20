@@ -1,8 +1,6 @@
 package io.evlikat.games.cardgames.ginrummy
 
-import io.evlikat.games.cardgames.core.Card
-import io.evlikat.games.cardgames.core.Suit.*
-import io.evlikat.games.cardgames.core.of
+import io.evlikat.games.cardgames.core.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Test
 
@@ -10,62 +8,22 @@ internal class HelperKtTest {
 
     @Test
     fun shouldFindSimpleCombinations() {
-        val result = findCombinations(
-            listOf(
-                5 of HEARTS,
-                'Q' of HEARTS,
-                5 of CLUBS,
-                4 of SPADES,
-                7 of DIAMONDS,
-                2 of SPADES,
-                3 of SPADES,
-                'K' of HEARTS,
-                5 of DIAMONDS,
-            )
-        )
+        val result = findCombinations(gRun("5♥", "Q♥", "5♣", "4♠", "7♦", "2♠", "3♠", "K♥", "5♦"))
 
         assertEquals(
-            listOf('Q' of HEARTS, 7 of DIAMONDS, 'K' of HEARTS) to listOf(
-                listOf(
-                    2 of SPADES,
-                    3 of SPADES,
-                    4 of SPADES,
-                ),
-                listOf(
-                    5 of HEARTS,
-                    5 of CLUBS,
-                    5 of DIAMONDS,
-                )
-            ),
+            cards("Q♥", "7♦", "K♥") to listOf(gRun("2♠", "3♠", "4♠"), gSet("5♥", "5♣", "5♦")),
             result
         )
     }
 
     @Test
     fun shouldFindTwoRunsDifferentSuit() {
-        val result = findCombinations(
-            listOf(
-                4 of HEARTS,
-                2 of SPADES,
-                4 of SPADES,
-                3 of HEARTS,
-                3 of SPADES,
-                2 of HEARTS,
-            )
-        )
+        val result = findCombinations(gRun("4♥", "2♠", "4♠", "3♥", "3♠", "2♥"))
 
         assertEquals(
-            emptyList<Card>() to listOf(
-                listOf(
-                    2 of HEARTS,
-                    3 of HEARTS,
-                    4 of HEARTS,
-                ),
-                listOf(
-                    2 of SPADES,
-                    3 of SPADES,
-                    4 of SPADES,
-                ),
+            EmptyCardSet to listOf(
+                gRun("2♠", "3♠", "4♠"),
+                gRun("2♥", "3♥", "4♥"),
             ),
             result
         )
@@ -73,29 +31,12 @@ internal class HelperKtTest {
 
     @Test
     fun shouldFindTwoRunsSameSuit() {
-        val result = findCombinations(
-            listOf(
-                9 of HEARTS,
-                10 of HEARTS,
-                3 of HEARTS,
-                4 of HEARTS,
-                2 of HEARTS,
-                8 of HEARTS,
-            )
-        )
+        val result = findCombinations(gRun("4♥", "8♥", "9♥", "3♥", "2♥", "10♥"))
 
         assertEquals(
-            emptyList<Card>() to listOf(
-                listOf(
-                    2 of HEARTS,
-                    3 of HEARTS,
-                    4 of HEARTS,
-                ),
-                listOf(
-                    8 of HEARTS,
-                    9 of HEARTS,
-                    10 of HEARTS,
-                ),
+            EmptyCardSet to listOf(
+                gRun("2♥", "3♥", "4♥"),
+                gRun("8♥", "9♥", "10♥"),
             ),
             result
         )
@@ -103,84 +44,39 @@ internal class HelperKtTest {
 
     @Test
     fun shouldFindOptimalDeadwood() {
-        val result = findCombinations(
-            listOf(
-                2 of HEARTS,
-                3 of HEARTS,
-                4 of HEARTS,
-                4 of DIAMONDS,
-                4 of CLUBS,
-            )
-        )
+        val result = findCombinations(gRun("4♥", "2♥", "4♣", "3♥", "4♠"))
 
         assertEquals(
-            listOf(2 of HEARTS, 3 of HEARTS) to listOf(
-                listOf(
-                    4 of HEARTS,
-                    4 of DIAMONDS,
-                    4 of CLUBS,
-                ),
-            ),
+            cards("2♥", "3♥") to listOf(gSet("4♥", "4♣", "4♠")),
             result
         )
     }
 
     @Test
     fun shouldFindOptimalDeadwoodTwoIntersections() {
-        val result = findCombinations(
-            listOf(
-                2 of HEARTS,
-                3 of HEARTS,
-                4 of HEARTS,
-                4 of DIAMONDS,
-                4 of CLUBS,
-                5 of CLUBS,
-                6 of CLUBS,
-            )
-        )
+        val result = findCombinations(gRun("4♥", "5♣", "2♥", "4♣", "3♥", "4♠", "6♣"))
 
         assertEquals(
-            listOf(4 of DIAMONDS) to listOf(
-                listOf(
-                    2 of HEARTS,
-                    3 of HEARTS,
-                    4 of HEARTS,
-                ),
-                listOf(
-                    4 of CLUBS,
-                    5 of CLUBS,
-                    6 of CLUBS,
-                ),
-            ),
+            cards("4♠") to listOf(gRun("4♣", "5♣", "6♣"), gRun("2♥", "3♥", "4♥")),
             result
         )
     }
 
     @Test
     fun shouldFindOptimalDeadwoodBreakLongRun() {
-        val result = findCombinations(
-            listOf(
-                2 of HEARTS,
-                3 of HEARTS,
-                4 of HEARTS,
-                4 of DIAMONDS,
-                4 of CLUBS,
-                5 of HEARTS,
-                6 of HEARTS,
-            )
-        )
+        val result = findCombinations(gRun("4♥", "5♥", "2♥", "4♣", "3♥", "4♠", "6♥"))
 
         assertEquals(
-            listOf(4 of DIAMONDS, 4 of CLUBS) to listOf(
-                listOf(
-                    2 of HEARTS,
-                    3 of HEARTS,
-                    4 of HEARTS,
-                    5 of HEARTS,
-                    6 of HEARTS,
-                ),
-            ),
+            cards("4♠", "4♣") to listOf(gRun("2♥", "3♥", "4♥", "5♥", "6♥")),
             result
         )
+    }
+
+    private fun gRun(vararg values: String): GRun {
+        return GRun(BitCardSet.of(values.map { Card.parse(it) }))
+    }
+
+    private fun gSet(vararg values: String): GSet {
+        return GSet(BitCardSet.of(values.map { Card.parse(it) }))
     }
 }

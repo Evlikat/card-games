@@ -59,8 +59,8 @@ class GinRummy(
             }
             turnNumber++
         }
-        val (deadwood1, _) = findCombinations(hand1.allCards)
-        val (deadwood2, _) = findCombinations(hand2.allCards)
+        val (deadwood1, _) = findCombinations(hand1.cards)
+        val (deadwood2, _) = findCombinations(hand2.cards)
         val deadwoodValue1 = evaluate(deadwood1)
         val deadwoodValue2 = evaluate(deadwood2)
         return when {
@@ -76,18 +76,17 @@ class GinRummy(
             val drawTopDiscard = activePlayer.askYesNo("Do you want to draw top discard card?")
             if (drawTopDiscard) {
                 discard.moveCardTo(playerHand)
-                val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.allCards)
+                val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.cards)
                 playerHand.moveCardTo(selectedCard, discard)
             }
         } else {
             val selectedZone = activePlayer.askSelectZone("Draw from deck or discard", deck, discard)
             selectedZone.moveCardTo(playerHand)
-            val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.allCards)
+            val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.cards)
             playerHand.moveCardTo(selectedCard, discard)
         }
-        val (deadwood, combinations) = findCombinations(playerHand.allCards)
-        if (deadwood.isNotEmpty() && evaluate(deadwood.sortedByDescending { evaluate(it) }
-                .drop(1)) > MAX_DEADWOOD_VALUE) {
+        val (deadwood, combinations) = findCombinations(playerHand.cards)
+        if (deadwood.isNotEmpty() && deadwood.map { evaluate(it) }.drop(1).sum() > MAX_DEADWOOD_VALUE) {
             return NextTurn
         }
 
@@ -96,24 +95,24 @@ class GinRummy(
             return NextTurn
         }
 
-        val cardsAvailableToDiscard = playerHand.allCards.filter { playerCard ->
-            val (potentialDeadwood, _) = findCombinations(playerHand.allCards - playerCard)
+        val cardsAvailableToDiscard = playerHand.cards.filter { playerCard ->
+            val (potentialDeadwood, _) = findCombinations(playerHand.cards - playerCard)
             potentialDeadwood.isEmpty() || evaluate(potentialDeadwood) <= MAX_DEADWOOD_VALUE
         }
 
         val discardCover = activePlayer.askSelectCard("Select card to cover discard", cardsAvailableToDiscard)
         playerHand.moveCardTo(discardCover, discard)
 
-        val deadwoodValueAfterDiscard = evaluate(playerHand.allCards - discardCover - combinations.flatten())
+        val deadwoodValueAfterDiscard = evaluate(playerHand.cards - discardCover - combinations.reduce(CardSet::union))
 
         val anotherPlayer = if (activePlayer == player1) player2 else player1
         val anotherPlayerHand = if (activePlayer == player1) hand2 else hand1
 
-        val (anotherPlayerDeadwood, _) = findCombinations(anotherPlayerHand.allCards)
+        val (anotherPlayerDeadwood, _) = findCombinations(anotherPlayerHand.cards)
 
         // TODO: complete opponents combinations
 
-        val anotherPlayerDeadwoodValue = evaluate(anotherPlayerDeadwood.sortedByDescending { evaluate(it) }.drop(1))
+        val anotherPlayerDeadwoodValue = anotherPlayerDeadwood.map { evaluate(it) }.drop(1).sum()
 
         return GameOver(deadwoodDiff = anotherPlayerDeadwoodValue - deadwoodValueAfterDiscard)
     }

@@ -1,165 +1,73 @@
 package io.evlikat.games.cardgames.core
 
-enum class SuitColor {
-    RED,
-    BLACK
-}
+enum class Card(val suit: Suit, val nominal: Nominal) {
+    SPADES_A(Suit.SPADES, Nominal.A),
+    SPADES_2(Suit.SPADES, Nominal.C2),
+    SPADES_3(Suit.SPADES, Nominal.C3),
+    SPADES_4(Suit.SPADES, Nominal.C4),
+    SPADES_5(Suit.SPADES, Nominal.C5),
+    SPADES_6(Suit.SPADES, Nominal.C6),
+    SPADES_7(Suit.SPADES, Nominal.C7),
+    SPADES_8(Suit.SPADES, Nominal.C8),
+    SPADES_9(Suit.SPADES, Nominal.C9),
+    SPADES_10(Suit.SPADES, Nominal.C10),
+    SPADES_J(Suit.SPADES, Nominal.J),
+    SPADES_Q(Suit.SPADES, Nominal.Q),
+    SPADES_K(Suit.SPADES, Nominal.K),
+    CLUBS_A(Suit.CLUBS, Nominal.A),
+    CLUBS_2(Suit.CLUBS, Nominal.C2),
+    CLUBS_3(Suit.CLUBS, Nominal.C3),
+    CLUBS_4(Suit.CLUBS, Nominal.C4),
+    CLUBS_5(Suit.CLUBS, Nominal.C5),
+    CLUBS_6(Suit.CLUBS, Nominal.C6),
+    CLUBS_7(Suit.CLUBS, Nominal.C7),
+    CLUBS_8(Suit.CLUBS, Nominal.C8),
+    CLUBS_9(Suit.CLUBS, Nominal.C9),
+    CLUBS_10(Suit.CLUBS, Nominal.C10),
+    CLUBS_J(Suit.CLUBS, Nominal.J),
+    CLUBS_Q(Suit.CLUBS, Nominal.Q),
+    CLUBS_K(Suit.CLUBS, Nominal.K),
+    DIAMONDS_A(Suit.DIAMONDS, Nominal.A),
+    DIAMONDS_2(Suit.DIAMONDS, Nominal.C2),
+    DIAMONDS_3(Suit.DIAMONDS, Nominal.C3),
+    DIAMONDS_4(Suit.DIAMONDS, Nominal.C4),
+    DIAMONDS_5(Suit.DIAMONDS, Nominal.C5),
+    DIAMONDS_6(Suit.DIAMONDS, Nominal.C6),
+    DIAMONDS_7(Suit.DIAMONDS, Nominal.C7),
+    DIAMONDS_8(Suit.DIAMONDS, Nominal.C8),
+    DIAMONDS_9(Suit.DIAMONDS, Nominal.C9),
+    DIAMONDS_10(Suit.DIAMONDS, Nominal.C10),
+    DIAMONDS_J(Suit.DIAMONDS, Nominal.J),
+    DIAMONDS_Q(Suit.DIAMONDS, Nominal.Q),
+    DIAMONDS_K(Suit.DIAMONDS, Nominal.K),
+    HEARTS_A(Suit.HEARTS, Nominal.A),
+    HEARTS_2(Suit.HEARTS, Nominal.C2),
+    HEARTS_3(Suit.HEARTS, Nominal.C3),
+    HEARTS_4(Suit.HEARTS, Nominal.C4),
+    HEARTS_5(Suit.HEARTS, Nominal.C5),
+    HEARTS_6(Suit.HEARTS, Nominal.C6),
+    HEARTS_7(Suit.HEARTS, Nominal.C7),
+    HEARTS_8(Suit.HEARTS, Nominal.C8),
+    HEARTS_9(Suit.HEARTS, Nominal.C9),
+    HEARTS_10(Suit.HEARTS, Nominal.C10),
+    HEARTS_J(Suit.HEARTS, Nominal.J),
+    HEARTS_Q(Suit.HEARTS, Nominal.Q),
+    HEARTS_K(Suit.HEARTS, Nominal.K)
+    ;
 
-enum class Suit(val sign: String, val color: SuitColor) {
-    DIAMONDS("♦", SuitColor.RED),
-    HEARTS("♥", SuitColor.RED),
-    CLUBS("♣", SuitColor.BLACK),
-    SPADES("♠", SuitColor.BLACK)
-}
-
-enum class Nominal(val sign: String) {
-    A("A"),
-    C2("2"),
-    C3("3"),
-    C4("4"),
-    C5("5"),
-    C6("6"),
-    C7("7"),
-    C8("8"),
-    C9("9"),
-    C10("10"),
-    J("J"),
-    Q("Q"),
-    K("K")
-}
-
-data class Card(val suit: Suit, val nominal: Nominal) {
-    infix fun sameSuitAs(card: Card) = suit == card.suit
-
-    override fun toString(): String = "${suit.sign}${nominal.sign}"
+    override fun toString(): String = "${nominal.sign}${suit.sign}"
     fun precedes(card: Card): Boolean = nominal.ordinal + 1 == card.nominal.ordinal
-}
-
-infix fun Int.of(suit: Suit): Card = Card(suit, Nominal.values()[this - 1])
-infix fun Char.of(suit: Suit): Card = Card(
-    suit, when (this.toLowerCase()) {
-        'a' -> Nominal.A
-        'q' -> Nominal.Q
-        'k' -> Nominal.K
-        'j' -> Nominal.J
-        else -> throw IllegalArgumentException("Unrecognized character")
-    }
-)
-
-interface Watcher {
-    fun cardMoved(card: Card, from: CardZone, to: CardZone)
-}
-
-class Deck private constructor(private val cards: MutableList<Card>) : CardZone {
-
-    override lateinit var watcher: Watcher
-
-    val size: Int get() = cards.size
 
     companion object {
-        fun standard52(): Deck =
-            Deck(Suit.values().flatMapTo(mutableListOf()) { s -> Nominal.values().map { Card(s, it) } })
-    }
-
-    fun shuffle() = cards.shuffle()
-
-    override fun draw(): Card {
-        return cards.removeAt(cards.lastIndex)
-    }
-
-    override fun draw(card: Card): Card {
-        if (!cards.remove(card)) {
-            throw IllegalStateException("The $card is not in hand")
+        fun parse(value: String): Card {
+            val suitStr = when (value.last()) {
+                '♦' -> Suit.DIAMONDS
+                '♥' -> Suit.HEARTS
+                '♣' -> Suit.CLUBS
+                '♠' -> Suit.SPADES
+                else -> throw IllegalArgumentException("Unrecognized suit")
+            }.toString()
+            return valueOf("${suitStr}_${value.dropLast(1)}")
         }
-        return card
     }
-
-    override fun putOnTop(card: Card) {
-        cards.add(card)
-    }
-}
-
-class Discard(private val cards: MutableList<Card> = mutableListOf()) : CardZone {
-
-    override lateinit var watcher: Watcher
-
-    val allCards: List<Card> = cards
-
-    override fun draw(): Card {
-        return cards.removeAt(cards.lastIndex)
-    }
-
-    override fun draw(card: Card): Card {
-        if (!cards.remove(card)) {
-            throw IllegalStateException("The $card is not in hand")
-        }
-        return card
-    }
-
-    override fun putOnTop(card: Card) {
-        cards.add(card)
-    }
-}
-
-interface CardOrder : Comparator<Card>
-
-interface CardZone {
-
-    val watcher: Watcher
-
-    fun draw(): Card
-    fun draw(card: Card): Card
-    fun putOnTop(card: Card)
-
-    fun moveCardTo(zone: CardZone) {
-        val card = this.draw()
-        watcher.cardMoved(card = card, from = this, to = zone)
-        zone.putOnTop(card)
-    }
-
-    fun moveCardTo(card: Card, zone: CardZone) {
-        this.draw(card)
-        watcher.cardMoved(card = card, from = this, to = zone)
-        zone.putOnTop(card)
-    }
-}
-
-class Player(
-    val name: String
-) {
-    fun askYesNo(message: String): Boolean {
-        TODO("Not yet implemented")
-    }
-
-    fun askSelectZone(message: String, vararg cardZones: CardZone): CardZone {
-        TODO("Not yet implemented")
-    }
-
-    fun askSelectCard(message: String, cards: Collection<Card>): Card {
-        TODO("Not yet implemented")
-    }
-}
-
-class Hand(val player: Player) : CardZone {
-
-    override lateinit var watcher: Watcher
-    private val cards: MutableList<Card> = mutableListOf()
-
-    val allCards: List<Card> = cards
-
-    override fun draw(): Card {
-        TODO("Not drawable zone")
-    }
-
-    override fun draw(card: Card): Card {
-        if (!cards.remove(card)) {
-            throw IllegalStateException("The $card is not in hand")
-        }
-        return card
-    }
-
-    override fun putOnTop(card: Card) {
-        cards.add(card)
-    }
-
 }

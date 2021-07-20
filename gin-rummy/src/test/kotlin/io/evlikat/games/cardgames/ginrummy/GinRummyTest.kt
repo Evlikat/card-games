@@ -16,8 +16,8 @@ internal class GinRummyTest {
         val gin = GinRummy(watcher, Player("1"), Player("2"))
         gin.hand()
 
-        assertEquals(10, gin.hand1.allCards.size)
-        assertEquals(10, gin.hand2.allCards.size)
+        assertEquals(10, gin.hand1.cards.size)
+        assertEquals(10, gin.hand2.cards.size)
         assertEquals(32, gin.deck.size)
 
         gin.atStartOfGame()

@@ -1,18 +1,21 @@
 package io.evlikat.games.cardgames.ginrummy
 
+import io.evlikat.games.cardgames.core.BitCardSet
 import io.evlikat.games.cardgames.core.Card
+import io.evlikat.games.cardgames.core.CardSet
+import io.evlikat.games.cardgames.core.EmptyCardSet
 import io.evlikat.games.cardgames.core.Nominal.*
 
-fun findCombinations(cards: Collection<Card>): Pair<List<Card>, List<List<Card>>> {
-    val allCards = cards.toSet()
+fun findCombinations(cards: CardSet): Pair<CardSet, List<CardSet>> {
+    val allCards = BitCardSet.of(cards)
 
     val runs = findRuns(cards)
     val sets = findSets(cards)
 
-    val contestedCards = runs.flatMap { it.cards } intersect sets.flatMap { it.cards }
+    val contestedCards = runs.reduce() intersect sets.reduce()
     if (contestedCards.isEmpty()) {
-        val deadwood = allCards - sets.flatMap { it.cards } - runs.flatMap { it.cards }
-        return deadwood.toList() to (runs.map { it.cards } + sets.map { it.cards })
+        val deadwood = allCards - sets.reduce() - runs.reduce()
+        return deadwood to (runs + sets)
     }
     val points = contestedCards.associateWith { contestedCard ->
         val contestedRun = runs.find { it.contains(contestedCard) }!!
@@ -26,7 +29,7 @@ fun findCombinations(cards: Collection<Card>): Pair<List<Card>, List<List<Card>>
         for (contestedCard in cardsInRuns) {
             val (_, set) = points.getValue(contestedCard)
             newSets.remove(set)
-            val setCandidate = set.without(contestedCard)
+            val setCandidate = set.minus(contestedCard)
             if (setCandidate.isValid()) {
                 newSets.add(setCandidate)
             }
@@ -34,28 +37,15 @@ fun findCombinations(cards: Collection<Card>): Pair<List<Card>, List<List<Card>>
         for (contestedCard in cardsInSets) {
             val (run, _) = points.getValue(contestedCard)
             newRuns.remove(run)
-            val runCandidate = run.without(contestedCard)
+            val runCandidate = run.minus(contestedCard)
             if (runCandidate.isValid()) {
                 newRuns.add(runCandidate)
             }
         }
-        val potentialDeadwood = (allCards - newSets.flatMap { it.cards } - newRuns.flatMap { it.cards }).toList()
+        val potentialDeadwood = allCards - newSets.reduce() - newRuns.reduce()
         val evaluated = evaluate(potentialDeadwood)
-        evaluated to (potentialDeadwood to (newRuns.map { it.cards } + newSets.map { it.cards }))
+        evaluated to (potentialDeadwood to (newRuns + newSets))
     }.minByOrNull { it.first }!!.second
-}
-
-private data class GRun(val cards: List<Card>) {
-    fun contains(card: Card): Boolean = cards.contains(card)
-    fun without(card: Card): GRun = GRun(cards.filter { it != card })
-    fun isValid(): Boolean =
-        (cards.last().nominal.ordinal - cards.first().nominal.ordinal == cards.size + 1) && cards.size >= 3
-}
-
-private data class GSet(val cards: List<Card>) {
-    fun contains(card: Card): Boolean = cards.contains(card)
-    fun without(card: Card): GSet = GSet(cards.filter { it != card })
-    fun isValid(): Boolean = cards.size >= 3
 }
 
 private fun findRuns(cards: Collection<Card>): List<GRun> {
@@ -74,7 +64,7 @@ private fun findRuns(cards: Collection<Card>): List<GRun> {
                     acc
                 }
                 .filter { it.size >= 3 }
-                .map { GRun(it) }
+                .map { GRun(BitCardSet.of(it)) }
         }
         .flatten()
 }
@@ -84,10 +74,12 @@ private fun findSets(cards: Collection<Card>): List<GSet> {
         .groupBy { it.nominal }
         .filterValues { it.size >= 3 }
         .values
-        .map { GSet(it) }
+        .map { GSet(BitCardSet.of(it)) }
 }
 
-fun evaluate(cards: Collection<Card>): Int = cards.sumOf { evaluate(it) }
+private fun Collection<CardSet>.reduce(): CardSet = if (isEmpty()) EmptyCardSet else reduce(CardSet::union)
+
+fun evaluate(cards: CardSet): Int = cards.sumOf { evaluate(it) }
 
 fun evaluate(card: Card): Int {
     return when (card.nominal) {
