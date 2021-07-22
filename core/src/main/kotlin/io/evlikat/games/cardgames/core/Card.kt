@@ -56,7 +56,7 @@ enum class Card(val suit: Suit, val nominal: Nominal) {
     ;
 
     override fun toString(): String = "${nominal.sign}${suit.sign}"
-    fun precedes(card: Card): Boolean = nominal.ordinal + 1 == card.nominal.ordinal
+    infix fun precedes(card: Card): Boolean = nominal.ordinal + 1 == card.nominal.ordinal && suit == card.suit
 
     companion object {
         fun parse(value: String): Card {

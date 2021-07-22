@@ -4,7 +4,7 @@ class Discard(private val cards: MutableList<Card> = mutableListOf()) : CardZone
 
     override lateinit var watcher: Watcher
 
-    val allCards: List<Card> = cards
+    override val size: Int get() = cards.size
 
     override fun draw(): Card {
         return cards.removeAt(cards.lastIndex)

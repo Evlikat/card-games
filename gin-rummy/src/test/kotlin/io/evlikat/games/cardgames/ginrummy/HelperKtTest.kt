@@ -8,7 +8,7 @@ internal class HelperKtTest {
 
     @Test
     fun shouldFindSimpleCombinations() {
-        val result = findCombinations(gRun("5♥", "Q♥", "5♣", "4♠", "7♦", "2♠", "3♠", "K♥", "5♦"))
+        val result = findCombinations(cards("5♥", "Q♥", "5♣", "4♠", "7♦", "2♠", "3♠", "K♥", "5♦"))
 
         assertEquals(
             cards("Q♥", "7♦", "K♥") to listOf(gRun("2♠", "3♠", "4♠"), gSet("5♥", "5♣", "5♦")),
@@ -18,7 +18,7 @@ internal class HelperKtTest {
 
     @Test
     fun shouldFindTwoRunsDifferentSuit() {
-        val result = findCombinations(gRun("4♥", "2♠", "4♠", "3♥", "3♠", "2♥"))
+        val result = findCombinations(cards("4♥", "2♠", "4♠", "3♥", "3♠", "2♥"))
 
         assertEquals(
             EmptyCardSet to listOf(
@@ -31,7 +31,7 @@ internal class HelperKtTest {
 
     @Test
     fun shouldFindTwoRunsSameSuit() {
-        val result = findCombinations(gRun("4♥", "8♥", "9♥", "3♥", "2♥", "10♥"))
+        val result = findCombinations(cards("4♥", "8♥", "9♥", "3♥", "2♥", "10♥"))
 
         assertEquals(
             EmptyCardSet to listOf(
@@ -44,7 +44,7 @@ internal class HelperKtTest {
 
     @Test
     fun shouldFindOptimalDeadwood() {
-        val result = findCombinations(gRun("4♥", "2♥", "4♣", "3♥", "4♠"))
+        val result = findCombinations(cards("4♥", "2♥", "4♣", "3♥", "4♠"))
 
         assertEquals(
             cards("2♥", "3♥") to listOf(gSet("4♥", "4♣", "4♠")),
@@ -54,7 +54,7 @@ internal class HelperKtTest {
 
     @Test
     fun shouldFindOptimalDeadwoodTwoIntersections() {
-        val result = findCombinations(gRun("4♥", "5♣", "2♥", "4♣", "3♥", "4♠", "6♣"))
+        val result = findCombinations(cards("4♥", "5♣", "2♥", "4♣", "3♥", "4♠", "6♣"))
 
         assertEquals(
             cards("4♠") to listOf(gRun("4♣", "5♣", "6♣"), gRun("2♥", "3♥", "4♥")),
@@ -64,7 +64,7 @@ internal class HelperKtTest {
 
     @Test
     fun shouldFindOptimalDeadwoodBreakLongRun() {
-        val result = findCombinations(gRun("4♥", "5♥", "2♥", "4♣", "3♥", "4♠", "6♥"))
+        val result = findCombinations(cards("4♥", "5♥", "2♥", "4♣", "3♥", "4♠", "6♥"))
 
         assertEquals(
             cards("4♠", "4♣") to listOf(gRun("2♥", "3♥", "4♥", "5♥", "6♥")),

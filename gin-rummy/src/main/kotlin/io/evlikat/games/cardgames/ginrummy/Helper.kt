@@ -6,7 +6,7 @@ import io.evlikat.games.cardgames.core.CardSet
 import io.evlikat.games.cardgames.core.EmptyCardSet
 import io.evlikat.games.cardgames.core.Nominal.*
 
-fun findCombinations(cards: CardSet): Pair<CardSet, List<CardSet>> {
+fun findCombinations(cards: CardSet): Pair<CardSet, List<Combination>> {
     val allCards = BitCardSet.of(cards)
 
     val runs = findRuns(cards)
@@ -29,16 +29,16 @@ fun findCombinations(cards: CardSet): Pair<CardSet, List<CardSet>> {
         for (contestedCard in cardsInRuns) {
             val (_, set) = points.getValue(contestedCard)
             newSets.remove(set)
-            val setCandidate = set.minus(contestedCard)
-            if (setCandidate.isValid()) {
+            val setCandidate = set - contestedCard
+            if (setCandidate is GSet) {
                 newSets.add(setCandidate)
             }
         }
         for (contestedCard in cardsInSets) {
             val (run, _) = points.getValue(contestedCard)
             newRuns.remove(run)
-            val runCandidate = run.minus(contestedCard)
-            if (runCandidate.isValid()) {
+            val runCandidate = run - contestedCard
+            if (runCandidate is GRun) {
                 newRuns.add(runCandidate)
             }
         }
@@ -48,7 +48,13 @@ fun findCombinations(cards: CardSet): Pair<CardSet, List<CardSet>> {
     }.minByOrNull { it.first }!!.second
 }
 
-private fun findRuns(cards: Collection<Card>): List<GRun> {
+fun completeCombinations(combinations: List<Combination>, additionalCardSet: CardSet): Pair<List<CardSet>, CardSet> {
+    combinations.map {
+    }
+        TODO()
+}
+
+private fun findRuns(cards: Collection<Card>, minSize: Int = 3): List<GRun> {
     return cards
         .groupBy { it.suit }
         .mapValues { (_, suitCards) -> suitCards.sortedBy { it.nominal.ordinal } }
@@ -63,16 +69,16 @@ private fun findRuns(cards: Collection<Card>): List<GRun> {
                     }
                     acc
                 }
-                .filter { it.size >= 3 }
+                .filter { it.size >= minSize }
                 .map { GRun(BitCardSet.of(it)) }
         }
         .flatten()
 }
 
-private fun findSets(cards: Collection<Card>): List<GSet> {
+private fun findSets(cards: Collection<Card>, minSize: Int = 3): List<GSet> {
     return cards
         .groupBy { it.nominal }
-        .filterValues { it.size >= 3 }
+        .filterValues { it.size >= minSize }
         .values
         .map { GSet(BitCardSet.of(it)) }
 }

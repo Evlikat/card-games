@@ -22,7 +22,7 @@ internal class GinRummyTest {
 
         gin.atStartOfGame()
 
-        assertEquals(1, gin.discard.allCards.size)
+        assertEquals(1, gin.discard.size)
         assertEquals(31, gin.deck.size)
 
         verify(watcher, times(10)).cardMoved(any(), eq(gin.deck), eq(gin.hand1))

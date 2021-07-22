@@ -103,16 +103,16 @@ class GinRummy(
         val discardCover = activePlayer.askSelectCard("Select card to cover discard", cardsAvailableToDiscard)
         playerHand.moveCardTo(discardCover, discard)
 
-        val deadwoodValueAfterDiscard = evaluate(playerHand.cards - discardCover - combinations.reduce(CardSet::union))
+        val deadwoodValueAfterDiscard = evaluate(deadwood - discardCover)
 
         val anotherPlayer = if (activePlayer == player1) player2 else player1
         val anotherPlayerHand = if (activePlayer == player1) hand2 else hand1
 
         val (anotherPlayerDeadwood, _) = findCombinations(anotherPlayerHand.cards)
 
-        // TODO: complete opponents combinations
+        val (completedCombinations, anotherPlayerNewDeadwood) = completeCombinations(combinations, anotherPlayerDeadwood)
 
-        val anotherPlayerDeadwoodValue = anotherPlayerDeadwood.map { evaluate(it) }.drop(1).sum()
+        val anotherPlayerDeadwoodValue = anotherPlayerNewDeadwood.map { evaluate(it) }.drop(1).sum()
 
         return GameOver(deadwoodDiff = anotherPlayerDeadwoodValue - deadwoodValueAfterDiscard)
     }

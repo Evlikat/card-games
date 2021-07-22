@@ -5,6 +5,7 @@ class Hand(val player: Player) : CardZone {
     override lateinit var watcher: Watcher
     var cards: CardSet = EmptyCardSet
         private set
+    override val size: Int get() = cards.size
 
     override fun draw(): Card {
         TODO("Not drawable zone")

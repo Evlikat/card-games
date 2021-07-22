@@ -4,7 +4,7 @@ class Deck private constructor(private val cards: MutableList<Card>) : CardZone 
 
     override lateinit var watcher: Watcher
 
-    val size: Int get() = cards.size
+    override val size: Int get() = cards.size
 
     companion object {
         fun standard52(): Deck = Deck(Card.values().toMutableList())

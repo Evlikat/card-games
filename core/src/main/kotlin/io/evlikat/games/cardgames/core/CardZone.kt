@@ -4,6 +4,7 @@ interface CardZone {
 
     val watcher: Watcher
 
+    val size: Int
     fun draw(): Card
     fun draw(card: Card): Card
     fun putOnTop(card: Card)
