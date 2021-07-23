@@ -8,6 +8,8 @@ interface CardSet : Set<Card> {
 
     operator fun minus(other: CardSet): CardSet
 
+    operator fun plus(other: CardSet): CardSet
+
     operator fun plus(card: Card): CardSet
 
     operator fun minus(card: Card): CardSet

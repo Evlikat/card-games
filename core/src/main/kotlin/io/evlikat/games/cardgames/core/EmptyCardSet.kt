@@ -12,6 +12,8 @@ object EmptyCardSet : CardSet {
 
     override fun plus(card: Card): CardSet = BitCardSet.of(card)
 
+    override fun plus(other: CardSet): CardSet = other
+
     override val size: Int = 0
 
     override fun contains(element: Card): Boolean = false

@@ -26,6 +26,12 @@ internal class BitCardSetTest {
     }
 
     @Test
+    fun plusCardSet() {
+        val set = cards("2♥", "4♣") + cards("3♥")
+        assertThat(set).isEqualTo(cards("2♥", "4♣", "3♥"))
+    }
+
+    @Test
     fun minusCardSet() {
         val set = cards("2♥", "4♣") - cards("3♥", "4♣")
         assertThat(set).isEqualTo(cards("2♥"))

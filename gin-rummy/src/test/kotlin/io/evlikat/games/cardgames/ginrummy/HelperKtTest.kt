@@ -72,11 +72,76 @@ internal class HelperKtTest {
         )
     }
 
+    @Test
+    fun shouldCompleteRun() {
+        val result = completeCombinations(
+            listOf(gRun("2♥", "3♥", "4♥"), gSet("10♥", "10♣", "10♠")),
+            cards("5♥", "6♥", "8♠")
+        )
+
+        assertEquals(
+            listOf(gRun("2♥", "3♥", "4♥", "5♥", "6♥"), gSet("10♥", "10♣", "10♠")) to cards("8♠"),
+            result
+        )
+    }
+
+    @Test
+    fun shouldCompleteSet() {
+        val result = completeCombinations(
+            listOf(gRun("2♥", "3♥", "4♥"), gSet("10♥", "10♣", "10♠")),
+            cards("6♥", "10♦", "8♠")
+        )
+
+        assertEquals(
+            listOf(gRun("2♥", "3♥", "4♥"), gSet("10♥", "10♣", "10♠", "10♦")) to cards("6♥", "8♠"),
+            result
+        )
+    }
+
+    @Test
+    fun shouldCompleteSetBeforeRunSingleCard() {
+        val result = completeCombinations(
+            listOf(gRun("2♥", "3♥", "4♥"), gSet("5♦", "5♣", "5♠")),
+            cards("5♥", "8♠")
+        )
+
+        assertEquals(
+            listOf(gRun("2♥", "3♥", "4♥"), gSet("5♥", "5♦", "5♣", "5♠")) to cards("8♠"),
+            result
+        )
+    }
+
+    @Test
+    fun shouldCompleteRunBeforeSet() {
+        val result = completeCombinations(
+            listOf(gRun("2♥", "3♥", "4♥"), gSet("5♦", "5♣", "5♠")),
+            cards("5♥", "6♥", "8♠")
+        )
+
+        assertEquals(
+            listOf(gRun("2♥", "3♥", "4♥", "5♥", "6♥"), gSet("5♦", "5♣", "5♠")) to cards("8♠"),
+            result
+        )
+    }
+
+    @Test
+    fun shouldCompleteLongRunBeforeSet() {
+        val result = completeCombinations(
+            listOf(gRun("2♥", "3♥", "4♥"), gRun("7♥", "8♥", "9♥"), gSet("5♦", "5♣", "5♠")),
+            cards("5♥", "6♥", "8♠")
+        )
+
+        assertEquals(
+            listOf(gRun("2♥", "3♥", "4♥"), gRun("5♥", "6♥", "7♥", "8♥", "9♥"), gSet("5♦", "5♣", "5♠")) to cards("8♠"),
+            result
+        )
+    }
+
     private fun gRun(vararg values: String): GRun {
-        return GRun(BitCardSet.of(values.map { Card.parse(it) }))
+        return GRun(BitCardSet.of(values.map(Card.Companion::parse)))
     }
 
     private fun gSet(vararg values: String): GSet {
-        return GSet(BitCardSet.of(values.map { Card.parse(it) }))
+        return GSet(BitCardSet.of(values.map(Card.Companion::parse)))
     }
 }

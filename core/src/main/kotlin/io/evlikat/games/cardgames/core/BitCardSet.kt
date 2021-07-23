@@ -9,6 +9,8 @@ class BitCardSet private constructor(private val elements: Long) : CardSet {
 
     override fun intersect(other: CardSet): CardSet = BitCardSet(elements and toElementBits(other))
 
+    override operator fun plus(other: CardSet): CardSet = BitCardSet(elements or toElementBits(other))
+
     override operator fun plus(card: Card): CardSet = BitCardSet(elements or toElementBit(card))
 
     override operator fun minus(other: CardSet): CardSet = BitCardSet(elements and toElementBits(other).inv())

@@ -9,8 +9,8 @@ import io.evlikat.games.cardgames.core.Nominal.*
 fun findCombinations(cards: CardSet): Pair<CardSet, List<Combination>> {
     val allCards = BitCardSet.of(cards)
 
-    val runs = findRuns(cards)
-    val sets = findSets(cards)
+    val runs = findRunCandidates(cards, minSize = 3).map { GRun(it) }
+    val sets = findSetCandidates(cards, minSize = 3).map { GSet(it) }
 
     val contestedCards = runs.reduce() intersect sets.reduce()
     if (contestedCards.isEmpty()) {
@@ -22,39 +22,132 @@ fun findCombinations(cards: CardSet): Pair<CardSet, List<Combination>> {
         val contestedSet = sets.find { it.contains(contestedCard) }!!
         contestedRun to contestedSet
     }
-    return points.keys.powerSet().map { cardsInRuns ->
-        val cardsInSets = points.keys - cardsInRuns
-        val newRuns = runs.toMutableList()
-        val newSets = sets.toMutableList()
-        for (contestedCard in cardsInRuns) {
-            val (_, set) = points.getValue(contestedCard)
-            newSets.remove(set)
-            val setCandidate = set - contestedCard
-            if (setCandidate is GSet) {
-                newSets.add(setCandidate)
-            }
-        }
-        for (contestedCard in cardsInSets) {
-            val (run, _) = points.getValue(contestedCard)
-            newRuns.remove(run)
-            val runCandidate = run - contestedCard
-            if (runCandidate is GRun) {
-                newRuns.add(runCandidate)
-            }
-        }
-        val potentialDeadwood = allCards - newSets.reduce() - newRuns.reduce()
-        val evaluated = evaluate(potentialDeadwood)
-        evaluated to (potentialDeadwood to (newRuns + newSets))
-    }.minByOrNull { it.first }!!.second
+
+    val combinations = findCombinationsRecursive(
+        intersection = contestedCards,
+        pointMap = points,
+        distKey = mapOf()
+    )
+    val optimalCombination = combinations.minByOrNull { evaluate((cards - it.values.reduce()).toCardSet()) }!!
+
+    val deadwood = (cards - optimalCombination.values.reduce()).toCardSet()
+    return deadwood to optimalCombination.values.distinct()
 }
 
-fun completeCombinations(combinations: List<Combination>, additionalCardSet: CardSet): Pair<List<CardSet>, CardSet> {
-    combinations.map {
+private fun findCombinationsRecursive(
+    intersection: CardSet,
+    pointMap: Map<Card, Pair<GRun, GSet>>,
+    distKey: Map<Card, Combination>
+): List<Map<Card, Combination>> {
+    if (intersection.isEmpty()) {
+        return listOf(distKey)
     }
-        TODO()
+    val contestedPoint = intersection.first()
+    val (run, set) = pointMap.getValue(contestedPoint)
+    return findCombinationsRecursive(
+        intersection = intersection - contestedPoint,
+        pointMap = pointMap,
+        distKey = distKey + (contestedPoint to set)
+    ) + findCombinationsRecursive(
+        intersection = intersection - contestedPoint,
+        pointMap = pointMap,
+        distKey = distKey + (contestedPoint to run)
+    )
 }
 
-private fun findRuns(cards: Collection<Card>, minSize: Int = 3): List<GRun> {
+fun completeCombinations(
+    combinations: List<Combination>,
+    additionalCardSet: CardSet
+): Pair<List<Combination>, CardSet> {
+    val runCandidates = findRunCandidates(additionalCardSet, minSize = 2)
+    val runByStarts = combinations.filterIsInstance<GRun>().associateBy { it.firstCard }
+    val runsByEnds = combinations.filterIsInstance<GRun>().associateBy { it.lastCard }
+    val setsByNominal = combinations.filterIsInstance<GSet>().associateBy { it.nominal }
+
+    val setCompletionCandidates = additionalCardSet
+        .mapNotNull { c -> setsByNominal[c.nominal]?.let { it to c } }
+        .toMap()
+    val runCompletionCandidates = (additionalCardSet - runCandidates.reduce())
+        .mapNotNull { c ->
+            val toRun = (c.nextInSuitOrNull()?.let { runByStarts[it] } ?: c.prevInSuitOrNull()?.let { runsByEnds[it] })
+            toRun?.let { it to c }
+        }
+        .toMap()
+    val runCompletionRunCandidates = runCandidates
+        .mapNotNull { c ->
+            val toRun = (c.last().nextInSuitOrNull()?.let { runByStarts[it] }
+                ?: c.first().prevInSuitOrNull()?.let { runsByEnds[it] })
+            toRun?.let { it to c }
+        }
+        .toMap()
+
+    val intersection =
+        setCompletionCandidates.values intersect (runCompletionRunCandidates.values.reduce() + runCompletionCandidates.values)
+    if (intersection.isEmpty()) {
+        val newCombinations = combinations.map { combination ->
+            setCompletionCandidates[combination]?.let { (combination + it) as Combination }
+                ?: runCompletionCandidates[combination]?.let { (combination + it) as Combination }
+                ?: runCompletionRunCandidates[combination]?.let { (combination + it) as Combination }
+                ?: combination
+        }
+        val newDeadwood = additionalCardSet - setCompletionCandidates.values.toCardSet() -
+                runCompletionRunCandidates.values.reduce() - runCompletionCandidates.values.toCardSet()
+        return newCombinations to newDeadwood
+    }
+    val combinationCompletionOptions = completeCombinationsRecursive(
+        intersection = intersection,
+        setCompletionCandidates = setCompletionCandidates.map { it.value to it.key }.toMap(),
+        runCompletionCandidates = runCompletionCandidates.map { it.value to it.key }.toMap(),
+        runCompletionRunCandidates = runCompletionRunCandidates.map { it.value to it.key }.toMap(),
+        distKey = mapOf()
+    )
+    val optimalCombinationCompletion =
+        combinationCompletionOptions.minByOrNull { evaluate(additionalCardSet - it.keys.reduce()) }!!
+    val newDeadwood = additionalCardSet - optimalCombinationCompletion.keys.reduce()
+    val optimalCombinationCompletionReversed = optimalCombinationCompletion.map { it.value to it.key }.toMap()
+    val newCombinations = combinations.map { combination ->
+        optimalCombinationCompletionReversed[combination]?.let { (combination + it) as Combination } ?: combination
+    }
+    return newCombinations to newDeadwood
+}
+
+private fun completeCombinationsRecursive(
+    intersection: Set<Card>,
+    setCompletionCandidates: Map<Card, GSet>,
+    runCompletionCandidates: Map<Card, GRun>,
+    runCompletionRunCandidates: Map<CardSet, GRun>,
+    distKey: Map<CardSet, Combination>
+): List<Map<CardSet, Combination>> {
+    if (intersection.isEmpty()) {
+        return listOf(distKey)
+    }
+    val contestedPoint = intersection.first()
+    val gSet = setCompletionCandidates.getValue(contestedPoint)
+    val (gRun, bindCards) = (runCompletionCandidates[contestedPoint]?.let { it to EmptyCardSet }
+        ?: runCompletionRunCandidates.entries.find { contestedPoint in it.key }?.let { it.value to it.key })!!
+
+    return completeCombinationsRecursive(
+        intersection = intersection - contestedPoint,
+        setCompletionCandidates = setCompletionCandidates,
+        runCompletionCandidates = runCompletionCandidates,
+        runCompletionRunCandidates = runCompletionRunCandidates,
+        distKey = distKey + (BitCardSet.of(contestedPoint) to gSet)
+    ) + if (bindCards.isEmpty()) completeCombinationsRecursive(
+        intersection = intersection - contestedPoint,
+        setCompletionCandidates = setCompletionCandidates,
+        runCompletionCandidates = runCompletionCandidates,
+        runCompletionRunCandidates = runCompletionRunCandidates,
+        distKey = distKey + (BitCardSet.of(contestedPoint) to gRun)
+    ) else completeCombinationsRecursive(
+        intersection = intersection - contestedPoint,
+        setCompletionCandidates = setCompletionCandidates,
+        runCompletionCandidates = runCompletionCandidates,
+        runCompletionRunCandidates = runCompletionRunCandidates,
+        distKey = distKey + (bindCards to gRun)
+    )
+}
+
+private fun findRunCandidates(cards: Collection<Card>, minSize: Int): List<CardSet> {
     return cards
         .groupBy { it.suit }
         .mapValues { (_, suitCards) -> suitCards.sortedBy { it.nominal.ordinal } }
@@ -70,19 +163,20 @@ private fun findRuns(cards: Collection<Card>, minSize: Int = 3): List<GRun> {
                     acc
                 }
                 .filter { it.size >= minSize }
-                .map { GRun(BitCardSet.of(it)) }
+                .map { BitCardSet.of(it) }
         }
         .flatten()
 }
 
-private fun findSets(cards: Collection<Card>, minSize: Int = 3): List<GSet> {
+private fun findSetCandidates(cards: Collection<Card>, minSize: Int): List<CardSet> {
     return cards
         .groupBy { it.nominal }
         .filterValues { it.size >= minSize }
         .values
-        .map { GSet(BitCardSet.of(it)) }
+        .map { BitCardSet.of(it) }
 }
 
+private fun Collection<Card>.toCardSet(): CardSet = BitCardSet.of(this)
 private fun Collection<CardSet>.reduce(): CardSet = if (isEmpty()) EmptyCardSet else reduce(CardSet::union)
 
 fun evaluate(cards: CardSet): Int = cards.sumOf { evaluate(it) }
@@ -94,8 +188,24 @@ fun evaluate(card: Card): Int {
     }
 }
 
-private fun <T> Collection<T>.powerSet(): Set<Set<T>> =
-    if (isEmpty()) setOf(emptySet())
-    else drop(1)
-        .powerSet()
-        .let { it + it.map { it + first() } }
+private fun Card.prevInSuitOrNull(): Card? {
+    if (ordinal == 0) {
+        return null
+    }
+    val candidate = Card.values()[ordinal - 1]
+    if (candidate.suit != suit) {
+        return null
+    }
+    return candidate
+}
+
+private fun Card.nextInSuitOrNull(): Card? {
+    if (ordinal == values().lastIndex) {
+        return null
+    }
+    val candidate = Card.values()[ordinal + 1]
+    if (candidate.suit != suit) {
+        return null
+    }
+    return candidate
+}
