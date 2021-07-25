@@ -1,26 +1,52 @@
+var clientId = Math.floor(Math.random() * 1000000);
 var stompClient = null;
+const allScenes = ['welcome', 'waiting', 'play']
+var state = 'welcome'
 
-function setConnected(connected) {
-    $("#connect").prop("disabled", connected);
-    $("#disconnect").prop("disabled", !connected);
-    if (connected) {
-        $("#conversation").show();
-    }
-    else {
-        $("#conversation").hide();
-    }
-    $("#greetings").html("");
+function startNewGame() {
+    connectAsFirst()
 }
 
-function connect() {
-    var socket = new SockJS('/gs-guide-websocket');
+function joinGame() {
+    connectAsSecond()
+}
+
+function renderScene(newState) {
+    state = newState
+    allScenes.forEach(scene => {
+        var sceneElement = document.querySelector("#" + scene + "-scene")
+        if (state === scene) {
+            sceneElement.hidden = false;
+        } else {
+            sceneElement.hidden = true;
+        }
+    })
+}
+
+function connectAsFirst() {
+    var socket = new SockJS('/gin-rummy-ws');
     stompClient = Stomp.over(socket);
     stompClient.connect({}, function (frame) {
-        setConnected(true);
         console.log('Connected: ' + frame);
-        stompClient.subscribe('/topic/greetings', function (greeting) {
-            showGreeting(JSON.parse(greeting.body).content);
+        stompClient.subscribe('/client/' + clientId, function (response) {
+            console.log('Response: ' + response.body)
+            renderScene('waiting')
+            var response = JSON.parse(response.body)
+            document.querySelector("#waiting-game-id").innerHtml = response.gameId
+            stompClient.subscribe('/game/' + response.gameId, handleGameMessage)
         });
+        sendCreateNewGame()
+    });
+}
+
+function connectAsSecond() {
+    var socket = new SockJS('/gin-rummy-ws');
+    stompClient = Stomp.over(socket);
+    stompClient.connect({}, function (frame) {
+        var gameId = document.querySelector("#game-id-to-join").value
+        console.log('Connected: ' + frame);
+        stompClient.subscribe('/game/' + gameId, handleGameMessage)
+        sendJoinGame(gameId)
     });
 }
 
@@ -28,23 +54,40 @@ function disconnect() {
     if (stompClient !== null) {
         stompClient.disconnect();
     }
-    setConnected(false);
     console.log("Disconnected");
 }
 
-function sendName() {
-    stompClient.send("/app/hello", {}, JSON.stringify({'name': $("#name").val()}));
+function handleGameMessage(message) {
+    renderScene('play')
+    console.log(message)
+}
+
+function sendCreateNewGame() {
+    var playerInfo = {
+        'name': 'Roman',// document.querySelector("#name").value,
+        'clientId': clientId
+    }
+    stompClient.send("/app/game/new", {}, JSON.stringify(playerInfo));
+}
+
+function sendJoinGame(gameId) {
+    var playerInfo = {
+        'name': 'Roman',// document.querySelector("#name").value,
+        'clientId': clientId
+    }
+    stompClient.send("/app/game/" + gameId, {}, JSON.stringify(playerInfo));
 }
 
 function showGreeting(message) {
-    $("#greetings").append("<tr><td>" + message + "</td></tr>");
+    document.querySelector("#greetings").innerHtml += "<tr><td>" + message + "</td></tr>";
 }
 
-$(function () {
-    $("form").on('submit', function (e) {
-        e.preventDefault();
-    });
-    $( "#connect" ).click(function() { connect(); });
-    $( "#disconnect" ).click(function() { disconnect(); });
-    $( "#send" ).click(function() { sendName(); });
-});
+window.onload = function () {
+    renderScene('welcome')
+    document.querySelector("#start-new-game").onclick = function (e) {
+        startNewGame()
+    };
+    document.querySelector("#join-game").onclick = function (e) {
+        joinGame()
+    };
+};
