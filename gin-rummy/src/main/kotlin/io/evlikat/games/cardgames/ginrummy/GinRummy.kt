@@ -1,6 +1,7 @@
 package io.evlikat.games.cardgames.ginrummy
 
 import io.evlikat.games.cardgames.core.*
+import io.evlikat.games.cardgames.core.CardZones.*
 
 class GinRummy(
     private val watcher: Watcher,
@@ -13,11 +14,11 @@ class GinRummy(
         shuffle()
     }
 
-    val hand1 = Hand(player1).also {
+    val hand1 = Hand(player1, HAND_1).also {
         it.watcher = watcher
     }
 
-    val hand2 = Hand(player2).also {
+    val hand2 = Hand(player2, HAND_2).also {
         it.watcher = watcher
     }
 
@@ -80,7 +81,9 @@ class GinRummy(
                 playerHand.moveCardTo(selectedCard, discard)
             }
         } else {
-            val selectedZone = activePlayer.askSelectZone("Draw from deck or discard", deck, discard)
+            val selectedZone = zone(
+                activePlayer.askSelectZone("Draw from deck or discard", deck.cardZones, discard.cardZones)
+            )
             selectedZone.moveCardTo(playerHand)
             val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.cards)
             playerHand.moveCardTo(selectedCard, discard)
@@ -110,11 +113,21 @@ class GinRummy(
 
         val (anotherPlayerDeadwood, _) = findCombinations(anotherPlayerHand.cards)
 
-        val (completedCombinations, anotherPlayerNewDeadwood) = completeCombinations(combinations, anotherPlayerDeadwood)
+        val (completedCombinations, anotherPlayerNewDeadwood) = completeCombinations(
+            combinations,
+            anotherPlayerDeadwood
+        )
 
         val anotherPlayerDeadwoodValue = anotherPlayerNewDeadwood.map { evaluate(it) }.drop(1).sum()
 
         return GameOver(deadwoodDiff = anotherPlayerDeadwoodValue - deadwoodValueAfterDiscard)
+    }
+
+    private fun zone(zones: CardZones): CardZone = when (zones) {
+        DECK -> deck
+        DISCARD -> discard
+        HAND_1 -> hand1
+        HAND_2 -> hand2
     }
 
     companion object {

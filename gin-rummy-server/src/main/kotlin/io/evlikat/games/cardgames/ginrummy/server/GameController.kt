@@ -13,14 +13,23 @@ class GameController(
 
     @MessageMapping("/game/new")
     fun createNewGame(message: HelloMessage) {
-        val gameCreated = gameService.createNewGame(GameCreation(playerName = message.name))
+        val gameCreated = gameService.createNewGame(
+            GameCreation(playerName = message.name, clientId = message.clientId)
+        )
         simp.convertAndSend("/client/${message.clientId}", GameCreatedMessage(gameId = gameCreated.gameId))
     }
 
     @MessageMapping("/game/{gameId}")
     fun joinGame(@DestinationVariable gameId: String, message: HelloMessage) {
-        val gameJoin = gameService.joinGame(GameJoining(playerName = message.name))
+        val gameJoin = gameService.joinGame(
+            GameJoining(gameId = gameId, playerName = message.name, clientId = message.clientId)
+        )
         simp.convertAndSend("/game/$gameId", GameStartedMessage(gameId = gameId))
+    }
+
+    @MessageMapping("/game/{gameId}/play")
+    fun play(@DestinationVariable gameId: String, message: BaseTellMessage) {
+        gameService.play(gameId, message)
     }
 }
 

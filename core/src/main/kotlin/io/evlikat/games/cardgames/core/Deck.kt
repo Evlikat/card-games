@@ -2,6 +2,8 @@ package io.evlikat.games.cardgames.core
 
 class Deck private constructor(private val cards: MutableList<Card>) : CardZone {
 
+    override val cardZones: CardZones = CardZones.DECK
+
     override lateinit var watcher: Watcher
 
     override val size: Int get() = cards.size

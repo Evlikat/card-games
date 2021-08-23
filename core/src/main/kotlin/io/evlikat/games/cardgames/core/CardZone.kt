@@ -3,6 +3,7 @@ package io.evlikat.games.cardgames.core
 interface CardZone {
 
     val watcher: Watcher
+    val cardZones: CardZones
 
     val size: Int
     fun draw(): Card

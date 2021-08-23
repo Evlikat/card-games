@@ -2,6 +2,8 @@ package io.evlikat.games.cardgames.core
 
 class Discard(private val cards: MutableList<Card> = mutableListOf()) : CardZone {
 
+    override val cardZones: CardZones = CardZones.DISCARD
+
     override lateinit var watcher: Watcher
 
     override val size: Int get() = cards.size

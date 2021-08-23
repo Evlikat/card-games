@@ -1,17 +1,12 @@
 package io.evlikat.games.cardgames.core
 
-class Player(
+interface Player {
+
     val name: String
-) {
-    fun askYesNo(message: String): Boolean {
-        TODO("Not yet implemented")
-    }
 
-    fun askSelectZone(message: String, vararg cardZones: CardZone): CardZone {
-        TODO("Not yet implemented")
-    }
+    fun askYesNo(message: String): Boolean
 
-    fun askSelectCard(message: String, cards: Collection<Card>): Card {
-        TODO("Not yet implemented")
-    }
+    fun askSelectZone(message: String, vararg cardZones: CardZones): CardZones
+
+    fun askSelectCard(message: String, cards: Collection<Card>): Card
 }

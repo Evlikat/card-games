@@ -1,6 +1,6 @@
 package io.evlikat.games.cardgames.core
 
-class Hand(val player: Player) : CardZone {
+class Hand(val player: Player, override val cardZones: CardZones) : CardZone {
 
     override lateinit var watcher: Watcher
     var cards: CardSet = EmptyCardSet
