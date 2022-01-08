@@ -1,0 +1,43 @@
+.my-card {
+    display: inline-block;
+    padding: 5px;
+    margin-right: 5px;
+    border: 1px solid #666;
+    font-size: 14px;
+    text-align: center;
+    width: 35px;
+    height: 50px;
+    border-radius: 5px;
+}
+
+.diamonds {
+    color: red;
+}
+.diamonds span:after {
+    display: inline;
+    content: "\2666";
+}
+
+.clubs {
+    color: black;
+}
+.clubs span:after {
+    display: inline;
+    content: "\2663";
+}
+
+.hearts {
+    color: red;
+}
+.hearts span:after {
+    display: inline;
+    content: "\2665";
+}
+
+.spades {
+    color: black;
+}
+.spades span:after {
+    display: inline;
+    content: "\2660";
+}

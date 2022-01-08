@@ -27,9 +27,9 @@ class GameController(
         simp.convertAndSend("/game/$gameId", GameStartedMessage(gameId = gameId))
     }
 
-    @MessageMapping("/game/{gameId}/play")
-    fun play(@DestinationVariable gameId: String, message: BaseTellMessage) {
-        gameService.play(gameId, message)
+    @MessageMapping("/game/{gameId}/client/{clientId}")
+    fun play(@DestinationVariable gameId: String, @DestinationVariable clientId: String, message: BaseTellMessage) {
+        gameService.play(gameId, message.apply { actor = clientId })
     }
 }
 

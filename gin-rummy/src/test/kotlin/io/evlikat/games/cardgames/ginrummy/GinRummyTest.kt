@@ -10,10 +10,12 @@ import org.junit.jupiter.api.Assertions.*
 internal class GinRummyTest {
 
     private val watcher: Watcher = mock()
+    private val player1: Player = mock()
+    private val player2: Player = mock()
 
     @Test
     fun hand() {
-        val gin = GinRummy(watcher, Player("1"), Player("2"))
+        val gin = GinRummy(watcher, player1, player2)
         gin.hand()
 
         assertEquals(10, gin.hand1.cards.size)

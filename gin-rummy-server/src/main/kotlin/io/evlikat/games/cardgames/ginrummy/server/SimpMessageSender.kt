@@ -7,15 +7,16 @@ import java.lang.Exception
 
 class SimpMessageSender(
     private val simpMessagingTemplate: SimpMessagingTemplate,
+    private val gameId: String,
     private val clientId: String
 ) : MessageSender {
 
     private val log = LoggerFactory.getLogger(SimpMessageSender::class.java)
 
     override fun send(message: BaseServerMessage) {
-        log.info("Sending $message")
+        log.info("Sending $message to $clientId in $gameId")
         try {
-            simpMessagingTemplate.convertAndSend("/client/${clientId}", message)
+            simpMessagingTemplate.convertAndSend("/game/$gameId/client/$clientId", message)
         } catch (ex: Exception) {
             log.warn("Could not send message", ex)
         }

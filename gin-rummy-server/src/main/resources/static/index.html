@@ -11,7 +11,8 @@
 <body>
 <noscript>
     <h2 style="color: #ff0000">
-        Seems your browser doesn't support Javascript! Websocket relies on Javascript being enabled. Please enable Javascript and reload this page!
+        Seems your browser doesn't support Javascript! Websocket relies on Javascript being enabled. Please enable
+        Javascript and reload this page!
     </h2>
 </noscript>
 <div id="main-content" class="container">
@@ -54,6 +55,25 @@
             </div>
         </div>
     </div>
-    <div id="play-scene" class="container"></div>
+    <div id="play-scene" class="container">
+        <div id="opponents-hand">
+            <div>Opponent's hand</div>
+            <div id="opponents-hand-cards"></div>
+        </div>
+        <div id="top-discard">
+            <div id="deck" class="my-card"></div><div id="top-discard-card" style="display: inline-block; vertical-align: top"></div>
+        </div>
+        <div id="your-hand">
+            <div>Your hand</div>
+            <div id="your-hand-cards"></div>
+        </div>
+        <div id="decision">
+            <div id="decision-message"></div>
+            <div id="decision-yes-no" hidden>
+                <button id="decision-yes">Yes</button>
+                <button id="decision-no">No</button>
+            </div>
+        </div>
+    </div>
 </div>
 </body>

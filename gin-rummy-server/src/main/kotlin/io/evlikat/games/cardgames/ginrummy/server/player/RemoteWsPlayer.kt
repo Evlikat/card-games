@@ -12,6 +12,7 @@ import kotlin.concurrent.withLock
 
 class RemoteWsPlayer(
     override val name: String,
+    val clientId: String,
     val messageSender: MessageSender
 ) : Player {
 

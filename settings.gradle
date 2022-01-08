@@ -1,4 +1,0 @@
-include 'core'
-include 'gin-rummy'
-include 'gin-rummy-server'
-include 'gin-rummy-client'
