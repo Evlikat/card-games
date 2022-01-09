@@ -27,7 +27,7 @@ class GameService(
 
     fun createNewGame(creation: GameCreation): GameCreated {
         val game = GinRummyGame()
-        val gameId = gameIdCounter.getAndIncrement().toString() //UUID.randomUUID().toString()
+        val gameId = gameIdCounter.getAndIncrement().toString() //TODO: UUID.randomUUID().toString()
         games[gameId] = GameArgs(
             player1 = RemoteWsPlayer(
                 name = creation.playerName,

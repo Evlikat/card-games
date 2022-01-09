@@ -30,3 +30,5 @@ data class AskSelectZone(val message: String, val zones: Collection<CardZones>) 
 data class AskSelectCard(val message: String, val cards: Collection<Card>) : BaseServerMessage("AskSelectCard")
 
 data class CardMoved(val card: Card?, val from: CardZones, val to: CardZones) : BaseServerMessage("CardMoved")
+
+data class GameOver(val yourScore: Int, val opponentScore: Int) : BaseServerMessage("GameOver")

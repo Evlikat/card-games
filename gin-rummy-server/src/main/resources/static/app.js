@@ -85,6 +85,9 @@ function handleGameMessage(response) {
         case 'CardMoved':
             handleCardMoved(message);
             break;
+        case 'GameOver':
+            handleGameOver(message);
+            break;
     }
     invalidatePlayScene();
 }
@@ -101,9 +104,9 @@ function handleCardMoved(message) {
     }
 
     if (message.to === "HAND_1") {
-        hand1.push(message.card || noCard)
+        hand1.push(message.card || noCard);
     } else if (message.to === "HAND_2") {
-        hand2.push(message.card || noCard)
+        hand2.push(message.card || noCard);
     } else if (message.to === "DISCARD") {
         discard.push(message.card)
     }
@@ -130,6 +133,14 @@ function handleAskSelectCard(message) {
     }
 }
 
+function handleGameOver(message) {
+    var type = message.yourScore > message.opponentScore ? "win" : "lose"
+    decision = {
+        message: "You " + type + ". Your score: " + message.yourScore + ". Opponent score: " + message.opponentScore,
+        type: type
+    }
+}
+
 function invalidatePlayScene() {
     document.querySelector("#opponents-hand-cards").innerHTML = "";
     document.querySelector("#opponents-hand-cards").append(handAsHtml(playerNum === 1 ? hand2 : hand1));
@@ -139,7 +150,7 @@ function invalidatePlayScene() {
 
     document.querySelector("#top-discard-card").innerHTML = "";
     if (discard.length > 0) {
-        document.querySelector("#top-discard-card").append(cardAsHtml(discard.at(-1)))
+        document.querySelector("#top-discard-card").append(cardAsHtml(parseCard(discard.at(-1))))
     }
 
     document.querySelector("#decision-message").innerText = decision?.message || "";
@@ -148,15 +159,27 @@ function invalidatePlayScene() {
 }
 
 function handAsHtml(hand) {
-    var divs = hand.map(cardName => cardAsHtml(cardName));
+    var cards = hand.map(cardName => parseCard(cardName));
+    cards.sort(compareCards);
+    var divs = cards.map(card => cardAsHtml(card));
     var wrap = document.createElement("div");
     wrap.append(...divs);
     return wrap;
 }
 
-function cardAsHtml(cardName) {
+function compareCards(c1, c2) {
+    if (c1 === null && c2 !== null) return -1
+    if (c1 !== null && c2 === null) return 1
+    if (c1 === null && c2 === null) return 0
+    if (c1.suit < c2.suit) return -1
+    if (c1.suit > c2.suit) return 1
+    if (c1.order < c2.order) return -1
+    if (c1.order > c2.order) return 1
+    return 0
+}
+
+function cardAsHtml(card) {
     var cardDiv = document.createElement("div")
-    var card = parseCard(cardName)
     cardDiv.className = "my-card "
     if (card !== null) {
         cardDiv.className += card.suit.toLowerCase()
@@ -166,7 +189,9 @@ function cardAsHtml(cardName) {
 
         cardDiv.appendChild(nominalSpan)
         cardDiv.onclick = function (e) {
-            sendGameMessage({ name: "TellSelectCard", card : cardName })
+            sendGameMessage({ name: "TellSelectCard", card : card.suit + "_" + card.nominal })
+            decision = null;
+            invalidatePlayScene();
         }
     }
     return cardDiv
@@ -179,7 +204,27 @@ function parseCard(cardName) {
     var parts = cardName.split("_")
     return {
         suit: parts[0],
-        nominal: parts[1]
+        nominal: parts[1],
+        order: cardNominalToOrder(parts[1])
+    }
+}
+
+function cardNominalToOrder(nominal) {
+    switch (nominal) {
+        case "A": return 1;
+        case "2": return 2;
+        case "3": return 3;
+        case "4": return 4;
+        case "5": return 5;
+        case "6": return 6;
+        case "7": return 7;
+        case "8": return 8;
+        case "9": return 9;
+        case "10": return 10;
+        case "J": return 11;
+        case "Q": return 12;
+        case "K": return 13;
+        default: return 0;
     }
 }
 

@@ -37,26 +37,22 @@ class GinRummy(
         deck.moveCardTo(discard)
     }
 
-    fun play(): Pair<Int, Int> {
+    fun play(): GinRummyGameResult {
         var turnNumber = 1
-        val players = listOf(player1, player2)
+        var state: GameState = PlayerOneChooseDiscard
         while (deck.size > 2) {
-            val playerNumber = (turnNumber - 1) % players.size
-            val activePlayer = players[playerNumber]
-            when (val result = turn((turnNumber + 1) / 2, activePlayer)) {
-                is GameOver -> return if (result.deadwoodDiff > 0) {
-                    if (playerNumber == 0) {
-                        (KNOCK_BONUS + result.deadwoodDiff) to 0
-                    } else {
-                        0 to (KNOCK_BONUS - result.deadwoodDiff)
-                    }
-                } else {
-                    if (playerNumber == 1) {
-                        0 to (KNOCK_BONUS + result.deadwoodDiff)
-                    } else {
-                        (KNOCK_BONUS - result.deadwoodDiff) to 0
-                    }
-                }
+            val playerNumber = PlayerNumber.values()[(turnNumber - 1) % 2]
+            val activePlayer = if (playerNumber == PlayerNumber.ONE) player1 else player2
+            state = turn(state, activePlayer)
+            if (state is GameOver) {
+                val gameResult = gameResult(playerNumber, state.deadwoodDiff)
+                watcher.gameOver(
+                    GameResult(
+                        winnerPlayerIndex = gameResult.winnerPlayerIndex,
+                        scores = listOf(gameResult.player1Score, gameResult.player2Score)
+                    )
+                )
+                return gameResult
             }
             turnNumber++
         }
@@ -65,37 +61,73 @@ class GinRummy(
         val deadwoodValue1 = evaluate(deadwood1)
         val deadwoodValue2 = evaluate(deadwood2)
         return when {
-            deadwoodValue1 > deadwoodValue2 -> 0 to deadwoodValue1 - deadwoodValue2
-            deadwoodValue1 < deadwoodValue2 -> deadwoodValue2 - deadwoodValue1 to 0
-            else -> 0 to 0
+            deadwoodValue1 > deadwoodValue2 -> GinRummyGameResult(0, deadwoodValue1 - deadwoodValue2)
+            deadwoodValue1 < deadwoodValue2 -> GinRummyGameResult(deadwoodValue2 - deadwoodValue1, 0)
+            else -> GinRummyGameResult(0, 0)
         }
     }
 
-    private fun turn(number: Int, activePlayer: Player): TurnResult {
+    private fun gameResult(playerNumber: PlayerNumber, deadwoodDiff: Int): GinRummyGameResult {
+        return if (deadwoodDiff > 0) {
+            if (playerNumber == PlayerNumber.ONE) {
+                GinRummyGameResult(KNOCK_BONUS + deadwoodDiff, 0)
+            } else {
+                GinRummyGameResult(0, KNOCK_BONUS + deadwoodDiff)
+            }
+        } else {
+            if (playerNumber == PlayerNumber.TWO) {
+                GinRummyGameResult(0, KNOCK_BONUS - deadwoodDiff)
+            } else {
+                GinRummyGameResult(KNOCK_BONUS - deadwoodDiff, 0)
+            }
+        }
+    }
+
+    private fun turn(gameState: GameState, activePlayer: Player): GameState {
         val playerHand = if (activePlayer == player1) hand1 else hand2
-        if (number == 1) {
-            val drawTopDiscard = activePlayer.askYesNo("Do you want to draw top discard card?")
-            if (drawTopDiscard) {
-                discard.moveCardTo(playerHand)
+        when (gameState) {
+            PlayerOneChooseDiscard -> {
+                val drawTopDiscard = activePlayer.askYesNo("Do you want to draw top discard card?")
+                if (drawTopDiscard) {
+                    discard.moveCardTo(playerHand)
+                    val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.cards)
+                    playerHand.moveCardTo(selectedCard, discard)
+                } else {
+                    return PlayerTwoChooseDiscard
+                }
+            }
+            PlayerTwoChooseDiscard -> {
+                val drawTopDiscard = activePlayer.askYesNo("Do you want to draw top discard card?")
+                if (drawTopDiscard) {
+                    discard.moveCardTo(playerHand)
+                    val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.cards)
+                    playerHand.moveCardTo(selectedCard, discard)
+                } else {
+                    return BothPlayersDeclinedDiscard
+                }
+            }
+            BothPlayersDeclinedDiscard -> {
+                deck.moveCardTo(playerHand)
                 val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.cards)
                 playerHand.moveCardTo(selectedCard, discard)
             }
-        } else {
-            val selectedZone = zone(
-                activePlayer.askSelectZone("Draw from deck or discard", deck.cardZones, discard.cardZones)
-            )
-            selectedZone.moveCardTo(playerHand)
-            val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.cards)
-            playerHand.moveCardTo(selectedCard, discard)
+            else -> {
+                val selectedZone = zone(
+                    activePlayer.askSelectZone("Draw from deck or discard", deck.cardZones, discard.cardZones)
+                )
+                selectedZone.moveCardTo(playerHand)
+                val selectedCard = activePlayer.askSelectCard("Select card to discard", playerHand.cards)
+                playerHand.moveCardTo(selectedCard, discard)
+            }
         }
         val (deadwood, combinations) = findCombinations(playerHand.cards)
         if (deadwood.isNotEmpty() && deadwood.map { evaluate(it) }.drop(1).sum() > MAX_DEADWOOD_VALUE) {
-            return NextTurn
+            return EndTurn
         }
 
         val knock = activePlayer.askYesNo("Do you want to knock?")
         if (!knock) {
-            return NextTurn
+            return EndTurn
         }
 
         val cardsAvailableToDiscard = playerHand.cards.filter { playerCard ->
@@ -108,7 +140,6 @@ class GinRummy(
 
         val deadwoodValueAfterDiscard = evaluate(deadwood - discardCover)
 
-        val anotherPlayer = if (activePlayer == player1) player2 else player1
         val anotherPlayerHand = if (activePlayer == player1) hand2 else hand1
 
         val (anotherPlayerDeadwood, _) = findCombinations(anotherPlayerHand.cards)
@@ -136,6 +167,9 @@ class GinRummy(
     }
 }
 
-sealed class TurnResult
-object NextTurn : TurnResult()
-class GameOver(val deadwoodDiff: Int) : TurnResult()
+sealed class GameState
+object PlayerOneChooseDiscard : GameState()
+object PlayerTwoChooseDiscard : GameState()
+object BothPlayersDeclinedDiscard : GameState()
+object EndTurn : GameState()
+class GameOver(val deadwoodDiff: Int) : GameState()

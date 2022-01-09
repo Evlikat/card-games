@@ -5,7 +5,7 @@ import io.evlikat.games.cardgames.core.Watcher
 
 class GinRummyGame {
 
-    fun go(player1: Player, player2: Player, watcher: Watcher): Pair<Int, Int> {
+    fun go(player1: Player, player2: Player, watcher: Watcher): GinRummyGameResult {
         val play = GinRummy(watcher, player1, player2)
 
         play.hand()

@@ -28,7 +28,11 @@ class GameController(
     }
 
     @MessageMapping("/game/{gameId}/client/{clientId}")
-    fun play(@DestinationVariable gameId: String, @DestinationVariable clientId: String, message: BaseTellMessage) {
+    fun play(
+        @DestinationVariable gameId: String,
+        @DestinationVariable clientId: String,
+        message: BaseTellMessage
+    ) {
         gameService.play(gameId, message.apply { actor = clientId })
     }
 }
