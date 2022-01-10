@@ -37,7 +37,7 @@ class GinRummy(
         deck.moveCardTo(discard)
     }
 
-    fun play(): GinRummyGameResult {
+    suspend fun play(): GinRummyGameResult {
         var turnNumber = 1
         var state: GameState = PlayerOneChooseDiscard
         while (deck.size > 2) {
@@ -83,7 +83,7 @@ class GinRummy(
         }
     }
 
-    private fun turn(gameState: GameState, activePlayer: Player): GameState {
+    private suspend fun turn(gameState: GameState, activePlayer: Player): GameState {
         val playerHand = if (activePlayer == player1) hand1 else hand2
         when (gameState) {
             PlayerOneChooseDiscard -> {

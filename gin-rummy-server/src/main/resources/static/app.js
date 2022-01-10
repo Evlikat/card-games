@@ -93,22 +93,27 @@ function handleGameMessage(response) {
 }
 
 function handleCardMoved(message) {
+    var card = parseCard(message.card)
     if (message.from === "HAND_1") {
-        if (playerNum === 1) hand1 = hand1.filter(c => c !== message.card)
+        if (playerNum === 1) hand1 = hand1.filter(c => c.name !== card.name)
         else hand1.pop()
     } else if (message.from === "HAND_2") {
-        if (playerNum === 2) hand2 = hand2.filter(c => c !== message.card)
+        if (playerNum === 2) hand2 = hand2.filter(c => c.name !== card.name)
         else hand2.pop()
     } else if (message.from === "DISCARD" ) {
         discard.pop()
     }
 
     if (message.to === "HAND_1") {
-        hand1.push(message.card || noCard);
+        hand1.forEach(c => { c.last = false });
+        card.last = true;
+        hand1.push(card);
     } else if (message.to === "HAND_2") {
-        hand2.push(message.card || noCard);
+        hand2.forEach(c => { c.last = false });
+        card.last = true;
+        hand2.push(card);
     } else if (message.to === "DISCARD") {
-        discard.push(message.card)
+        discard.push(card)
     }
 }
 
@@ -150,7 +155,7 @@ function invalidatePlayScene() {
 
     document.querySelector("#top-discard-card").innerHTML = "";
     if (discard.length > 0) {
-        document.querySelector("#top-discard-card").append(cardAsHtml(parseCard(discard.at(-1))))
+        document.querySelector("#top-discard-card").append(cardAsHtml(discard.at(-1)))
     }
 
     document.querySelector("#decision-message").innerText = decision?.message || "";
@@ -159,9 +164,13 @@ function invalidatePlayScene() {
 }
 
 function handAsHtml(hand) {
-    var cards = hand.map(cardName => parseCard(cardName));
+    var cards = hand.map(card => card);
     cards.sort(compareCards);
-    var divs = cards.map(card => cardAsHtml(card));
+    var divs = cards.map(card => {
+        var div = cardAsHtml(card);
+        addOnclickAsSelectCard(card, div);
+        return div;
+    });
     var wrap = document.createElement("div");
     wrap.append(...divs);
     return wrap;
@@ -178,33 +187,45 @@ function compareCards(c1, c2) {
     return 0
 }
 
-function cardAsHtml(card) {
+function cardAsHtml(card, onclickAsCard) {
     var cardDiv = document.createElement("div")
     cardDiv.className = "my-card "
-    if (card !== null) {
-        cardDiv.className += card.suit.toLowerCase()
+    if (card.flip) {
+        cardDiv.className += ""
+    } else {
+        cardDiv.className += card.suit.toLowerCase() + " "
 
         var nominalSpan = document.createElement("span")
         nominalSpan.innerText = card.nominal
 
-        cardDiv.appendChild(nominalSpan)
-        cardDiv.onclick = function (e) {
-            sendGameMessage({ name: "TellSelectCard", card : card.suit + "_" + card.nominal })
-            decision = null;
-            invalidatePlayScene();
+        if (card.last) {
+            cardDiv.className += "last-card "
         }
+
+        cardDiv.appendChild(nominalSpan)
     }
     return cardDiv
 }
 
+function addOnclickAsSelectCard(card, cardDiv) {
+    cardDiv.onclick = function (e) {
+        sendGameMessage({ name: "TellSelectCard", card : card.suit + "_" + card.nominal })
+        decision = null;
+        invalidatePlayScene();
+    }
+}
+
 function parseCard(cardName) {
-    if (cardName === noCard) {
-        return null
+    if (!cardName) {
+        return {
+            flip: true
+        }
     }
     var parts = cardName.split("_")
     return {
         suit: parts[0],
         nominal: parts[1],
+        name: cardName,
         order: cardNominalToOrder(parts[1])
     }
 }

@@ -18,3 +18,6 @@ dependencies {
     testImplementation("org.assertj:assertj-core:3.20.2")
     testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.7.0")
 }
+tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
+    kotlinOptions.jvmTarget = "1.8"
+}

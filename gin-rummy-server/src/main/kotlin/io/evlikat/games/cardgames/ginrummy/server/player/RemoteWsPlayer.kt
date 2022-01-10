@@ -1,14 +1,13 @@
 package io.evlikat.games.cardgames.ginrummy.server.player
 
 import io.evlikat.games.cardgames.core.Card
-import io.evlikat.games.cardgames.core.CardZone
 import io.evlikat.games.cardgames.core.CardZones
 import io.evlikat.games.cardgames.core.Player
 import io.evlikat.games.cardgames.ginrummy.server.AskSelectCard
 import io.evlikat.games.cardgames.ginrummy.server.AskSelectZone
 import io.evlikat.games.cardgames.ginrummy.server.AskYesNo
-import java.util.concurrent.locks.ReentrantLock
-import kotlin.concurrent.withLock
+import kotlinx.coroutines.CompletableDeferred
+import org.slf4j.LoggerFactory
 
 class RemoteWsPlayer(
     override val name: String,
@@ -16,67 +15,47 @@ class RemoteWsPlayer(
     val messageSender: MessageSender
 ) : Player {
 
-    private val lock = ReentrantLock(false)
+    private val log = LoggerFactory.getLogger(RemoteWsPlayer::class.java)
 
-    private val yesNoCondition = lock.newCondition()
+    private var yesNoDeferred: CompletableDeferred<Boolean>? = null
 
-    @Volatile
-    private var lastYes: Boolean = false
+    private var selectZoneDeferred: CompletableDeferred<CardZones>? = null
 
-
-    private val selectZoneCondition = lock.newCondition()
-
-    @Volatile
-    private var lastSelectedZone: CardZones? = null
-
-
-    private val selectCardCondition = lock.newCondition()
-
-    @Volatile
-    private var lastSelectedCard: Card? = null
+    private var selectCardDeferred: CompletableDeferred<Card>? = null
 
     fun resolveYesNo(yes: Boolean) {
-        lastYes = yes
-        lock.withLock {
-            yesNoCondition.signal()
-        }
+        yesNoDeferred?.complete(yes)
     }
 
-    override fun askYesNo(message: String): Boolean {
+    override suspend fun askYesNo(message: String): Boolean {
+        log.debug("Awaiting {} to select yes/no", clientId)
+        val newYesNoDeferred = CompletableDeferred<Boolean>()
+        yesNoDeferred = newYesNoDeferred
         messageSender.send(AskYesNo(message))
-        lock.withLock {
-            yesNoCondition.await()
-            return lastYes
-        }
+        return newYesNoDeferred.await()
     }
 
     fun resolveSelectZone(zone: CardZones) {
-        lastSelectedZone = zone
-        lock.withLock {
-            selectZoneCondition.signal()
-        }
+        selectZoneDeferred?.complete(zone)
     }
 
-    override fun askSelectZone(message: String, vararg cardZones: CardZones): CardZones {
+    override suspend fun askSelectZone(message: String, vararg cardZones: CardZones): CardZones {
+        log.debug("Awaiting {} to select a zone", clientId)
+        val newSelectZoneDeferred = CompletableDeferred<CardZones>()
+        selectZoneDeferred = newSelectZoneDeferred
         messageSender.send(AskSelectZone(message, cardZones.toList()))
-        lock.withLock {
-            selectZoneCondition.await()
-            return lastSelectedZone!!
-        }
+        return newSelectZoneDeferred.await()
     }
 
     fun resolveSelectCard(card: Card) {
-        lastSelectedCard = card
-        lock.withLock {
-            selectCardCondition.signal()
-        }
+        selectCardDeferred?.complete(card)
     }
 
-    override fun askSelectCard(message: String, cards: Collection<Card>): Card {
+    override suspend fun askSelectCard(message: String, cards: Collection<Card>): Card {
+        log.debug("Awaiting {} to select a card", clientId)
+        val newSelectCardDeferred = CompletableDeferred<Card>()
+        selectCardDeferred = newSelectCardDeferred
         messageSender.send(AskSelectCard(message, cards))
-        lock.withLock {
-            selectCardCondition.await()
-            return lastSelectedCard!!
-        }
+        return newSelectCardDeferred.await()
     }
 }

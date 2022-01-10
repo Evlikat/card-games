@@ -1,3 +1,7 @@
+#top-discard {
+    margin: 15px 0px;
+}
+
 .my-card {
     display: inline-block;
     padding: 5px;
@@ -8,6 +12,11 @@
     width: 35px;
     height: 50px;
     border-radius: 5px;
+    vertical-align: top;
+}
+
+.last-card {
+    outline: 2px solid #666;
 }
 
 .diamonds {
@@ -40,4 +49,14 @@
 .spades span:after {
     display: inline;
     content: "\2660";
+}
+
+#opponents-hand-cards .my-card, #deck {
+    background: repeating-linear-gradient(
+        -45deg,
+        #666,
+        #666 5px,
+        #ccc 5px,
+        #ccc 10px
+    );
 }

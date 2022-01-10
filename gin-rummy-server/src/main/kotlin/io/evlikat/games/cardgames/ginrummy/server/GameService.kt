@@ -5,6 +5,7 @@ import io.evlikat.games.cardgames.core.CardZones
 import io.evlikat.games.cardgames.ginrummy.GinRummyGame
 import io.evlikat.games.cardgames.ginrummy.server.player.RemoteWsPlayer
 import io.evlikat.games.cardgames.ginrummy.server.player.WsWatcher
+import kotlinx.coroutines.runBlocking
 import org.slf4j.LoggerFactory
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
@@ -61,7 +62,7 @@ class GameService(
             newPlayer2
         }
 
-        gamePool.submit {
+        runBlocking {
             game.go(
                 player1 = gameArgs.player1,
                 player2 = player2,
@@ -83,7 +84,7 @@ class GameService(
     }
 
     private fun deliver(player: RemoteWsPlayer, message: BaseTellMessage) {
-        return when (message) {
+        when (message) {
             is TellYesNo -> player.resolveYesNo(message.yes)
             is TellSelectCard -> player.resolveSelectCard(Card.valueOf(message.card))
             is TellSelectZone -> player.resolveSelectZone(CardZones.valueOf(message.zone))

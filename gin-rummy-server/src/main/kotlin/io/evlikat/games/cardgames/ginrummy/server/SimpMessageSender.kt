@@ -14,7 +14,7 @@ class SimpMessageSender(
     private val log = LoggerFactory.getLogger(SimpMessageSender::class.java)
 
     override fun send(message: BaseServerMessage) {
-        log.info("Sending $message to $clientId in $gameId")
+        log.debug("Sending $message to $clientId in $gameId")
         try {
             simpMessagingTemplate.convertAndSend("/game/$gameId/client/$clientId", message)
         } catch (ex: Exception) {
