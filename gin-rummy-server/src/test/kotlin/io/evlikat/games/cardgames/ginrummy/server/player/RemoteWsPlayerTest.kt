@@ -1,11 +1,12 @@
 package io.evlikat.games.cardgames.ginrummy.server.player
 
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Timeout
+import org.mockito.kotlin.any
 import org.mockito.kotlin.mock
+import org.mockito.kotlin.whenever
 import java.util.concurrent.TimeUnit.SECONDS
 
 internal class RemoteWsPlayerTest {
@@ -16,14 +17,11 @@ internal class RemoteWsPlayerTest {
         val messageSender: MessageSender = mock()
         val player = RemoteWsPlayer("p1", "c1", messageSender)
 
-        var result = false
-        runBlocking {
-            launch {
-                result = player.askYesNo("Yes?")
-            }
-            launch {
-                player.resolveYesNo(yes = true)
-            }
+        whenever(messageSender.send(any())).then {
+            player.resolveYesNo(yes = true)
+        }
+        val result = runBlocking {
+            player.askYesNo("Yes?")
         }
 
         assertTrue(result)
