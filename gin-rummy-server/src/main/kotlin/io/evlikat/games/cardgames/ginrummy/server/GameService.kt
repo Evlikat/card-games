@@ -5,13 +5,12 @@ import io.evlikat.games.cardgames.core.CardZones
 import io.evlikat.games.cardgames.ginrummy.GinRummyGame
 import io.evlikat.games.cardgames.ginrummy.server.player.RemoteWsPlayer
 import io.evlikat.games.cardgames.ginrummy.server.player.WsWatcher
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.*
 import org.slf4j.LoggerFactory
 import org.springframework.messaging.simp.SimpMessagingTemplate
 import org.springframework.stereotype.Service
 import java.lang.IllegalArgumentException
 import java.util.concurrent.ConcurrentHashMap
-import java.util.concurrent.Executors
 import java.util.concurrent.atomic.AtomicInteger
 
 @Service
@@ -22,7 +21,7 @@ class GameService(
     private val log = LoggerFactory.getLogger(GameService::class.java)
 
     private val games = ConcurrentHashMap<String, GameArgs>()
-    private val gamePool = Executors.newFixedThreadPool(1)
+    private val gamePool = CoroutineScope(Dispatchers.Default)
 
     private val gameIdCounter = AtomicInteger(1)
 
@@ -62,7 +61,7 @@ class GameService(
             newPlayer2
         }
 
-        runBlocking {
+        gamePool.launch {
             game.go(
                 player1 = gameArgs.player1,
                 player2 = player2,
